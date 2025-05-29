@@ -1,0 +1,188 @@
+services:
+  skynet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: skynet:latest
+    container_name: skynet-agent
+    restart: unless-stopped
+    
+    # Environment variables - all configurable
+    environment:
+      # Application settings
+      - PORT=${PORT:-8080}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      
+      # LLM Provider settings
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      
+      # Ollama LLM settings
+      - OLLAMA_ENDPOINT=${OLLAMA_ENDPOINT:-http://ollama:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen3}
+      
+      # Gemini LLM settings (when LLM_PROVIDER=gemini)
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-pro}
+      
+      # System settings
+      - TZ=${TZ:-UTC}
+      - USER=root
+      - HOME=/root
+      
+      # Docker settings
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      
+    # Port mapping
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    
+    # Volume mounts for system access
+    volumes:
+      # Docker socket for Docker tool access
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      
+      # Host filesystem access for system administration
+      - /etc:/host/etc:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/log:/host/var/log:ro
+      
+      # Temporary and working directories
+      - /tmp:/host/tmp:rw
+      
+      # Optional: Mount specific directories for file operations
+      # - ${HOST_WORKSPACE:-/tmp/skynet-workspace}:/workspace:rw
+    
+    # Security settings
+    privileged: false
+    
+    # Additional capabilities for system operations
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+      - SYS_PTRACE
+      - SYS_TIME
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+    
+    # Access to all devices for system monitoring
+    devices:
+      - /dev/null:/dev/null
+      - /dev/zero:/dev/zero
+      - /dev/random:/dev/random
+      - /dev/urandom:/dev/urandom
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-8080}/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits (optional, can be configured via environment)
+    deploy:
+      resources:
+        limits:
+          cpus: "${MAX_CPUS:-2.0}"
+          memory: "${MAX_MEMORY:-2G}"
+        reservations:
+          cpus: "${MIN_CPUS:-0.5}"
+          memory: "${MIN_MEMORY:-512M}"
+    
+    # Dependencies
+    depends_on:
+      model-downloader:
+        condition: service_completed_successfully
+    
+    # Labels for better organization
+    labels:
+      - "com.skynet.service=agent"
+      - "com.skynet.version=latest"
+      - "com.skynet.description=AI System Administration Agent"
+
+  # Ollama service (optional - if you want to run Ollama in container too)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: skynet-ollama
+    restart: unless-stopped
+    
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-1}
+      - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-1}
+      - OLLAMA_MAX_QUEUE=${OLLAMA_MAX_QUEUE:-512}
+    
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    
+    volumes:
+      - ${OLLAMA_MODELS_PATH:-./ollama-models}:/root/.ollama
+    
+    # GPU support (commented out if you don't have NVIDIA GPU)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    healthcheck:
+      test: 
+        - "CMD-SHELL"
+        - |
+          bash -c '</dev/tcp/localhost/11434'
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    labels:
+      - "com.skynet.service=ollama"
+      - "com.skynet.version=latest"
+      - "com.skynet.description=Local LLM Server"
+
+  # Model downloader service - automatically downloads the specified model
+  model-downloader:
+    image: ollama/ollama:latest
+    container_name: skynet-model-downloader
+    restart: "no"  # Only run once
+    
+    # Override the default entrypoint to use shell
+    entrypoint: ["/bin/sh", "-c"]
+    
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    
+    volumes:
+      - ${OLLAMA_MODELS_PATH:-./ollama-models}:/root/.ollama
+    
+    # Use ollama image directly to pull the model
+    command: >
+      "
+        ollama pull ${OLLAMA_MODEL:-qwen3};
+        echo 'Model download completed!';
+      "
+    
+    depends_on:
+      ollama:
+        condition: service_healthy
+    
+    networks:
+      - default
+    
+    labels:
+      - "com.skynet.service=model-downloader"
+      - "com.skynet.version=latest"
+      - "com.skynet.description=Downloads the specified Ollama model"
+
+# Networks (using default bridge network, but can be customized)
+networks:
+  default:
+    name: skynet-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "${NETWORK_SUBNET:-172.20.0.0/16}" 

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skynet AI Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="header-text">
+                        <h1>Skynet</h1>
+                        <p>Intelligent agent with complete control over Linux systems</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span id="status-text">Online</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="message assistant welcome-message">
+                <h2>Welcome to Skynet</h2>
+                <p>Autonomous system administration agent with unrestricted root access to Alpine Linux infrastructure. Operating with complete filesystem privileges, Docker orchestration capabilities, and real-time system state monitoring. Designed for proactive infrastructure management through direct shell execution and comprehensive system control.</p>
+                
+                <div class="suggestions">
+                    <div class="suggestion-item">run redis container with name skynet-cache and port 6379</div>
+                    <div class="suggestion-item">find top 5 docker images by size and show disk usage</div>
+                    <div class="suggestion-item">find largest 3 directories in /var and show their sizes</div>
+                    <div class="suggestion-item">install curl and wget using apk package manager</div>
+                    <div class="suggestion-item">list all running processes and show memory usage</div>
+                    <div class="suggestion-item">check network connections and listening ports</div>
+                    <div class="suggestion-item">create postgres container with persistent volume /data/postgres</div>
+                    <div class="suggestion-item">show system info including CPU, memory, and disk usage</div>
+                    <div class="suggestion-item">stop all containers and remove unused docker images</div>
+                    <div class="suggestion-item">create backup script for /etc directory to /backup/etc.tar.gz</div>
+                </div>
+                
+                <p style="margin-top: 20px; font-size: 13px; opacity: 0.8;">
+                    <strong>Skeynet Debug Mode:</strong> All decision-making processes and execution paths are transparently displayed for maximum operational insight.
+                </p>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <form class="chat-input-form" id="chat-form">
+                <textarea 
+                    class="chat-input" 
+                    id="chat-input" 
+                    placeholder="Query Skynet for system operations... (Enter to execute, Shift+Enter for new line)"
+                    rows="1"
+                ></textarea>
+                <button type="button" class="stop-button" id="stop-button" style="display: none;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="6" width="12" height="12" rx="2"/>
+                    </svg>
+                </button>
+                <button type="submit" class="send-button" id="send-button">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html> 
